@@ -8,6 +8,7 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\base\Swift_TransportException;
 use yii\filters\VerbFilter;
+use app\models\Schema;
 use app\models\LoginForm;
 use app\models\ContactForm;
 use app\models\ServiceAutoaccept;
@@ -113,10 +114,13 @@ class AdministrationController extends Controller
 
         
         $general=Configuration::find()->one();
+        $schema = new Schema();
+        $schema->url = "http://62.217.122.242/api_auth";
+        $schema->token = "e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94";
         $pages=Page::getPagesDropdown();
         
-        $activeButtons=['','','','','','','',''];
-        $activeTabs=['','','','','','','',''];
+        $activeButtons=['','','','','','','','',''];
+        $activeTabs=['','','','','','','','',''];
 
         if (!isset($_POST['hidden-active-button']))
         {
@@ -327,6 +331,12 @@ class AdministrationController extends Controller
                     $activeTabs[7]='tab-active';
                     $hiddenActiveButton='openstack-machines-button';
                 }
+                else if ($activeButton=='schemaAPI-button')
+                {
+                    $activeButtons[8]='button-active';
+                    $activeTabs[8]='tab-active';
+                    $hiddenActiveButton='schemaAPI-button';
+                }
                 else
                 {
                     $activeButtons[0]='button-active';
@@ -346,7 +356,7 @@ class AdministrationController extends Controller
                                 "hiddenUser" => $currentUser,'userTypes'=>$userTypes, 'serviceLimits'=>$serviceLimits,
                                 'ondemandLimits'=>$ondemandLimits,'coldStorageLimits'=>$coldStorageLimits,
                                 'activeTabs'=>$activeTabs,'activeButtons' => $activeButtons,'hiddenActiveButton'=>$hiddenActiveButton, 'smtp'=>$smtp, 'machineComputationLimits'=>$machineComputationLimits,
-                                'openstack'=>$openstack,'openstackMachines'=>$openstackMachines,'pages'=>$pages]);
+                                'openstack'=>$openstack,'openstackMachines'=>$openstackMachines,'pages'=>$pages, 'schema'=>$schema]);
         }
 
         $smtp->password=base64_decode($smtp->password);
@@ -357,7 +367,7 @@ class AdministrationController extends Controller
                                 'ondemandLimits'=>$ondemandLimits,'coldStorageLimits'=>$coldStorageLimits,'general'=>$general,
                                 'userTypes'=>$userTypes, 'success'=>'',"hiddenUser" => $currentUser,
                                 'activeTabs'=>$activeTabs,'activeButtons' => $activeButtons,'hiddenActiveButton'=>$hiddenActiveButton, 'smtp'=>$smtp, 'machineComputationLimits'=>$machineComputationLimits,
-                                'openstack'=>$openstack,'openstackMachines'=>$openstackMachines,'pages'=>$pages]);
+                                'openstack'=>$openstack,'openstackMachines'=>$openstackMachines,'pages'=>$pages, 'schema'=>$schema]);
     }
 
 

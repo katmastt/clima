@@ -2,6 +2,8 @@
 
 namespace app\controllers;
 
+use app\models\Token;
+use app\models\NewTokenRequestForm;
 use app\models\ColdStorageAutoaccept;
 use app\models\ColdStorageLimits;
 use app\models\ColdStorageRequest;
@@ -3002,6 +3004,198 @@ class ProjectController extends Controller
         $usage_participant=Project::userStatisticsParticipant($uid);
         return $this->render('user_statistics', ['usage_participant'=>$usage_participant,'usage_owner'=>$usage_owner, 'username'=>$username]);
     }
+
+    public function actionOnDemandLp($id, $ex_date= '') {
+        $existing=Vm::find()->where(['project_id'=>$id])->andWhere(['active'=>true])->one();
+
+        $project=Project::find()->where(['id'=>$id])->one();
+        $project_id=$project->id;
+
+        //first make an API call to schema API to validate if the project is registered
+        $pname = $project->name;
+        $headers = [
+            "Authorization: Token e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94",
+            'Content-Type: application/json'
+        ];
+        $URL1 = "http://62.217.122.242/api_auth/contexts/";
+        $URL = $URL1.$pname;
+         
+        $project_exists = Token::ProjectRegistered($URL, $headers);
+        $strArray=array();
+        if($project_exists == 0){
+            $temp1 = '{"context":';
+            $temp2 = '"';
+            $temp3 = '"}';
+            $temp4 = $temp2.$pname.$temp3;
+            $project_post = $temp1.$temp4;
+            Token::RegisterProject($URL, $headers, $project_post);
+            $issued_tokens = 0;
+            return $this->render('on_demand_lp',['model'=>$existing, 'requestId'=>$id, 'project'=>$project, 'issued_tokens'=>$issued_tokens,
+            'strArray'=>'empty', 'URL'=>$URL, 'headers'=>$headers, 'project_exists'=>$project_exists, 'ex_date'=>$ex_date]);
+            //echo "$issued_tokens";
+        } else {
+            $URL2 = "/tokens";
+            $URL = $URL1.$pname.$URL2;
+            $issued_tokens = Token::GetTokens($URL, $headers);
+            
+        }
+
+        if (empty($ex_date) == true){
+            $ex_date='nothing';
+        }
+        return $this->render('on_demand_lp',['model'=>$existing, 'requestId'=>$id, 'project'=>$project, 'issued_tokens'=>$issued_tokens[0],
+                                'strArray'=>$issued_tokens[1], 'URL'=>$URL, 'headers'=>$headers, 'project_exists'=>$project_exists, 'ex_date'=>$ex_date]);
+    }
+
+    // public function actionNewToken($id) {
+    //     $existing=Vm::find()->where(['project_id'=>$id])->andWhere(['active'=>true])->one();
+
+    //     $project=Project::find()->where(['id'=>$id])->one();
+    //     $project_id=$project->id;
+    //     return $this->render('new_token',['model'=>$existing, 'requestId'=>$id, 'project'=>$project]);
+    // }
+
+    public function actionNewTokenRequest($id, $mode, $uuid)
+    {
+        $existing=Vm::find()->where(['project_id'=>$id])->andWhere(['active'=>true])->one();
+
+        $project=Project::find()->where(['id'=>$id])->one();
+        $project_id=$project->id;
+        $model = new NewTokenRequestForm();
+
+
+        if ($model->load(Yii::$app->request->post())) {
+            $prequest=ProjectRequest::find()->where(['project_id'=>$id])->one();
+            $exp_date = new \DateTime($prequest->end_date);
+            $s_exp_date = new \DateTime($model->expiration_date);
+            $message=$model->validateDates($exp_date, $s_exp_date, $mode);
+            if( $message=='ok'|| $message =='empty') {
+                    // valid data received in $model
+                
+                //$message=$model->validateDates($exp_date, $s_exp_date);
+
+                if ($message!='ok' && $message!='empty' && !empty($prequest)){
+                    Yii::$app->session->setFlash('danger', "$message");
+                    return $this->actionOnDemandLp($project_id,$model->expiration_date);
+
+                } elseif($message=='empty'&& !empty($prequest) && $mode==0 ) {
+                    $s_exp_date = $exp_date;
+                } 
+                $time = date('h:i:s');
+                $headers = [
+                    "Authorization: Token e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94",
+                    'Content-Type: application/json'
+                ];
+                $URL1 = "http://62.217.122.242/api_auth/contexts/";
+                if ($mode == 1){
+                    $pname = $project->name;
+                    $URL = $URL1.$pname."/tokens"."/".$uuid;
+                    //echo "$URL"."<br>";
+                    $temp1 = '{"title":';
+                    $temp2 = '"';
+                    $temp3 = '"}';
+                    if ($message != 'empty') {
+                        $temp4 = $temp2.$model->name.$temp2;
+                        $patch = $temp1.$temp4.',"expiry":"'.$s_exp_date->format("Y-m-d")."T".$time.'.000000"}';
+                    } else {
+                        $temp4 = $temp2.$model->name.$temp3;
+                        $patch = $temp1.$temp4;
+                    }
+                    Token::EditToken($URL, $headers, $patch);
+                    $success = 'Your token information was updated succesfully.';
+                    Yii::$app->session->setFlash('success', "$success");
+                    return $this->actionOnDemandLp($project_id, $patch );
+
+                } elseif ($mode == 0){
+                    $URL2 = "/tokens";
+                    $pname = $project->name;
+                    $URL = $URL1.$pname.$URL2;
+                    $token = Token::CreateNewToken($URL, $headers, $model->name, $s_exp_date);
+                    $success = 'Your new token is the following: '. $token;
+                    // Changing it so that new token is not automatically handled by the underlying bootstrap
+    //                Yii::$app->session->setFlash('success', "$success");
+                    Yii::$app->session->setFlash('success-new-token', "$success");
+                    return $this->actionOnDemandLp($project_id,$model->expiration_date);
+                } 
+            } else {
+
+                Yii::$app->session->setFlash('danger', "$message");
+                //return $this->actionOnDemandLp($project_id,$model->expiration_date);
+            }
+           
+        } else {
+
+            if ($mode == 1) {
+                $pname = $project->name;
+                $headers = [
+                    "Authorization: Token e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94",
+                    'Content-Type: application/json'
+                ];
+                $URL1 = "http://62.217.122.242/api_auth/contexts/";
+                $URL2 = $URL1.$pname;
+                $URL3 = "/tokens";
+                $URL = $URL1.$pname.$URL3.'/'.$uuid;
+                $token_details = Token::GetTokenDetails($URL, $headers);
+                $exp_date = $token_details[1]->format('y-m-d');
+                return $this->render('new_token_request', ['model' => $model, 'requestId'=>$id, 'project'=>$project, 'mode'=>$mode, 'uuid'=>$uuid, 'title'=>$token_details[0], 'exp_date'=>$exp_date]);
+            
+            } elseif ($mode==0) {
+                return $this->render('new_token_request', ['model' => $model, 'requestId'=>$id, 'project'=>$project, 'mode'=>$mode, 'uuid'=>$uuid]);
+            
+            } else {
+                $headers = [
+                    "Authorization: Token e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94",
+                    'Content-Type: application/json'
+                ];
+                $URL1 = "http://62.217.122.242/api_auth/contexts/";
+                $pname = $project->name;
+                $URL = $URL1.$pname."/tokens"."/".$uuid;
+                Token::DeleteToken($URL, $headers);
+                $success = 'Your token was deleted.';
+                Yii::$app->session->setFlash('success', "$success");
+                return $this->actionOnDemandLp($project_id);
+             }
+            // either the page is initially displayed or there is some validation error
+            
+        }
+        if ($mode == 0){
+            return $this->render('new_token_request', ['model' => $model, 'requestId'=>$id, 'project'=>$project, 'mode'=>$mode, 'uuid'=>$uuid]);
+        } elseif($mode == 1){
+            $pname = $project->name;
+                $headers = [
+                    "Authorization: Token e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94",
+                    'Content-Type: application/json'
+                ];
+                $URL1 = "http://62.217.122.242/api_auth/contexts/";
+                $URL2 = $URL1.$pname;
+                $URL3 = "/tokens";
+                $URL = $URL1.$pname.$URL3.'/'.$uuid;
+                $token_details = Token::GetTokenDetails($URL, $headers);
+                $exp_date = $token_details[1]->format('y-m-d');
+                return $this->render('new_token_request', ['model' => $model, 'requestId'=>$id, 'project'=>$project, 'mode'=>$mode, 'uuid'=>$uuid, 'title'=>$token_details[0], 'exp_date'=>$exp_date]);
+        }
+        
+
+    }
+
+    //    public function actionDeleteToken($id, $uuid) {
+    //     $existing=Vm::find()->where(['project_id'=>$id])->andWhere(['active'=>true])->one();
+
+    //     $project=Project::find()->where(['id'=>$id])->one();
+    //     $project_id=$project->id;
+    //     $headers = [
+    //         "Authorization: Token e2b5e57c47d8bd073ce2b02e49ab2ddeb869837559138e134d3ed13a714c6ac9a236381e83b22e22e7849b04bef7d25ba3be9db33c67a7cbf239e9bd199bd04ca602f1baf1db7018eb231f574a48d9e90e19ac4c9fb1acfead568fe749fe4c94",
+    //         'Content-Type: application/json'
+    //     ];
+    //     $URL1 = "http://62.217.122.242/api_auth/contexts/";
+    //     $pname = $project->name;
+    //     $URL = $URL1.$pname."/tokens"."/".$uuid;
+    //     Token::DeleteToken($URL, $headers);
+    //     $success = 'Your token was deleted succesfully';
+    //     Yii::$app->session->setFlash('success', "$success");
+    //     return $this->actionOnDemandLp($project_id);
+    //     // return $this->render('delete_token',['model'=>$existing, 'requestId'=>$id, 'project'=>$project, 'uuid'=>$uuid]);
+    //}
 
 }
 

@@ -125,24 +125,26 @@ foreach ($active as $res)
 
 	if($res['favorite']==false)
 	{
-		$favorite_icon='<i class="far fa-heart favorite" title="Make favorite"></i>';
+		$favorite_icon='<i class="far fa-heart favorite" title="Make favorite ", style="color:red"></i>';
 		$favorite_link=Url::to(['/project/make-favorite','project_id'=>$res['project_id']]);
 	}
 	else
 	{
-		$favorite_icon='<i class="fas fa-heart favorite" title="Remove favorite"></i>';
+		$favorite_icon='<i class="fas fa-heart favorite" title="Remove favorite", style="color:red"></i>';
 		$favorite_link=Url::to(['/project/remove-favorite','project_id'=>$res['project_id']]);
 	}
 
 	if ($res['project_type']==0)
 	{
 		
-		$projectLink=$schema_url;
-		if(empty($schema_url))
-        {
-            $ondemand_access_class='disabled';
-        }
-		$projectTarget='_blank';
+		// $projectLink=$schema_url;
+		// if(empty($schema_url))
+        // {
+        //    $ondemand_access_class='disabled';
+        // }
+
+		$projectLink=Url::to(['/project/on-demand-lp','id'=>$res['project_id']]);
+		$projectTarget='_self';
 		$project_icon='<i class="fa fa-bolt" aria-hidden="true"></i>';
 		$title='On-demand batch computation';
 		$days=$res[1]. " days";
@@ -174,7 +176,7 @@ foreach ($active as $res)
 		$projectLink=Url::to(['/project/storage-volumes']);
 		$projectTarget='_self';
 		$project_icon='<i class="fa fa-database" aria-hidden="true"></i>';
-		$title="Cold-Storage";
+		$title="Cold Storage";
 		$days='N/A';
 	}
 
@@ -188,7 +190,7 @@ foreach ($active as $res)
 				<td class="col-md-2 text-center" style="vertical-align: middle!important;"><?=$days?></td>
 				<td class="col-md-3 text-right">
 					<?=Html::a("$update_icon Update",['/project/edit-project','id'=>$res['id']],['class'=>"btn btn-secondary btn-md $edit_button_class"])?>
-					<?=Html::a("$view_icon Details",['/project/view-request-user','id'=>$res['id'],'return'=>'index','expired'=>0],['class'=>'btn btn-secondary btn-md'])?> 
+					<?=Html::a("$view_icon Details",['/project/view-request-user','id'=>$res['id'],'return'=>'index','expired'=>0],['class'=>'btn btn-secondary btn-md'])?>
 					<?=Html::a("$access_icon Access", $projectLink,['class'=>"btn btn-success btn-md $access_button_class $ondemand_access_class",'target'=>$projectTarget])?>
 				</td>	
 			</tr>

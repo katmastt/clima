@@ -25,6 +25,8 @@ $bar_percentage=round(($usage['count'])/$details->num_of_jobs*100);
 $cancel_icon='<i class="fas fa-times"></i>';
 $edit_icon='<i class="fas fa-pencil-alt"></i>';
 $update_icon='<i class="fas fa-pencil-alt"></i>';
+//added the next line
+//$access_icon='<i class="fas fa-external-link-square-alt"></i>';
 
 
 if ($bar_percentage<=25)
@@ -57,6 +59,8 @@ if ($project_owner & (($project->status==1) || ($project->status==2)) & $expired
 	['title'=>"Project details", 'subtitle'=>$project->name,
 		'buttons'=>
 		[
+			//added the access button that redirects you to schema
+			//['fontawesome_class'=>$access_icon,'name'=> 'Access', 'action'=> ['/site/index','id'=>$request_id], 'type'=>'a', 'options'=>['class'=>'btn btn-success btn-md'] ],
 			['fontawesome_class'=>$update_icon,'name'=> 'Update', 'action'=> ['/project/edit-project','id'=>$request_id], 'type'=>'a', 'options'=>['class'=>'btn btn-secondary btn-md'] ],
 			['fontawesome_class'=>$back_icon,'name'=> 'Back', 'action'=>[$back_link], 'type'=>'a', 
 			'options'=>['class'=>'btn btn-default']] 

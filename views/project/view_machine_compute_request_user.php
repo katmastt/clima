@@ -25,6 +25,8 @@ $back_link=($return=='index') ? '/project/index' : '/administration/all-projects
 $cancel_icon='<i class="fas fa-times"></i>';
 $edit_icon='<i class="fas fa-pencil-alt"></i>';
 $update_icon='<i class="fas fa-pencil-alt"></i>';
+//added the next line
+//$access_icon='<i class="fas fa-external-link-square-alt"></i>';
 
 
 Headers::begin() ?>
@@ -36,6 +38,9 @@ if ($project_owner & (($project->status==1) || ($project->status==2)) & $expired
 	['title'=>"Project details", 'subtitle'=>$project->name,
 		'buttons'=>
 		[
+			//added the next line
+			// ['fontawesome_class'=>$access_icon,'name'=> 'Access','action'=> ['/project/machine-compute-access-project','id'=>$project->project_id], 'type'=>'a', 
+			// 'options'=>['class'=>'btn btn-success']],
 			['fontawesome_class'=>$update_icon,'name'=> 'Update', 'action'=> ['/project/edit-project','id'=>$request_id], 'type'=>'a', 'options'=>['class'=>'btn btn-secondary btn-md'] ],
 			['fontawesome_class'=>$back_icon,'name'=> 'Back', 'action'=>[$back_link], 'type'=>'a', 
 			'options'=>['class'=>'btn btn-default']] 

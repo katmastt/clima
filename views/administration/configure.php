@@ -45,6 +45,7 @@ if (!empty($success))
 		<div class="col-md-3 tab-button <?=$activeButtons[5]?>" data-controlling="tab-email-configuration" id='email-button'><div class="button-text"> SMTP configuration</div></div>
 		<div class="col-md-3 tab-button <?=$activeButtons[6]?>" data-controlling="tab-openstack-configuration" id='openstack-button'><div class="button-text"> OpenStack configuration</div></div>
 		<div class="col-md-3 tab-button <?=$activeButtons[7]?>" data-controlling="tab-openstack-machines-configuration" id='openstack-machines-button'><div class="button-text"> OpenStack Machines configuration</div></div>
+		<div class="col-md-3 tab-button <?=$activeButtons[8]?>" data-controlling="tab-schemaAPI-configuration" id='schemaAPI-button'><div class="button-text"> Schema API configuration</div></div>
 	</div>
 
 	<div class="row">&nbsp;</div>
@@ -180,9 +181,19 @@ if (!empty($success))
 			</div>
 	</div>
 
+	<div class="tab-schemaAPI-configuration tab <?=$activeTabs[8]?>">
+        <div class="row"><h2 class="col-md-12">Schema API options</h2></div>
+		<?= $form->field($schema, 'url') ?>
+		<?= $form->field($schema, 'token') ?>
+        <div class="row">&nbsp;</div>
+        
+
+
+    </div>
 	<div class="form-group">
         <?= Html::submitButton('<i class="fas fa-check"></i> Save', ['class' => 'btn btn-primary']) ?>
         <?= Html::a('<i class="fas fa-times"></i> Cancel', ['/administration/index'], ['class'=>'btn btn-default']) ?>
     </div>
+
 	<?php ActiveForm::end(); ?>
 </div>
